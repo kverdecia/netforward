@@ -36,7 +36,7 @@ setup(
             "netforward=netforward.cli:main",
         ],
     },
-    install_requires=[],
+    install_requires=["pexpect"],
     license="MIT license",
     long_description=readme + "\n\n" + history,
     include_package_data=True,
