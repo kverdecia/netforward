@@ -1,9 +1,11 @@
+from abc import ABCMeta, abstractproperty
+
 import pexpect
 
-from netforward.errors import NetForwardAlreadyStarted, NetForwardNotStarted
+from .errors import NetForwardAlreadyStarted, NetForwardNotStarted
 
 
-class SSHReverseForward:
+class BaseSSHForward(metaclass=ABCMeta):
     keyfile: str
     server: str
     remote_address: str
@@ -28,15 +30,13 @@ class SSHReverseForward:
         self.wait_for = wait_for
         self._child = None
 
-    @property
+    @abstractproperty
     def _forward_config(self) -> str:
-        items = [self.remote_address, self.remote_port, self.local_address, self.local_port]
-        forward_items = [str(item) for item in items if item is not None]
-        return ':'.join(forward_items)
+        ...
 
-    @property
+    @abstractproperty
     def _cmd(self) -> str:
-        return f'ssh -i {self.keyfile} -R {self._forward_config} {self.server}'
+        ...
 
     def _get_pexpect(self) -> pexpect.spawn:
         child = pexpect.spawn(self._cmd)
@@ -63,3 +63,27 @@ class SSHReverseForward:
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         self.stop()
+
+
+class SSHReverseForward(BaseSSHForward):
+    @property
+    def _forward_config(self) -> str:
+        items = [self.remote_address, self.remote_port, self.local_address, self.local_port]
+        forward_items = [str(item) for item in items if item is not None]
+        return ':'.join(forward_items)
+
+    @property
+    def _cmd(self) -> str:
+        return f'ssh -i {self.keyfile} -R {self._forward_config} {self.server}'
+
+
+class SSHForward(BaseSSHForward):
+    @property
+    def _forward_config(self) -> str:
+        items = [self.local_address, self.local_port, self.remote_address, self.remote_port]
+        forward_items = [str(item) for item in items if item is not None]
+        return ':'.join(forward_items)
+
+    @property
+    def _cmd(self) -> str:
+        return f'ssh -i {self.keyfile} -L {self._forward_config} {self.server}'
